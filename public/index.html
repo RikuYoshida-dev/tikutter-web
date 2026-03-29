@@ -86,9 +86,16 @@
     
     snapshot.forEach((doc) => {
       const post = doc.data();
+
+      // 👇 ここで「Firebaseの時間」を「日本の時刻」に変換する魔法や！
+      const date = post.createdAt ? post.createdAt.toDate().toLocaleString('ja-JP') : "送信中...";
+
       const tweetHtml = `
         <div class="tweet">
-          <div class="user-info">誰か <span class="user-id">@${post.userId || "user"}</span></div>
+          <div class="user-info">
+            誰か <span class="user-id">@${post.userId || "user"}</span>
+            <span style="color: #666; font-size: 12px; font-weight: normal; margin-left: 5px;">${date}</span>
+          </div>
           <div class="tweet-text">${post.text}</div>
           <div class="action-btns">
             <span style="cursor:pointer;">🔄 ${post.retweets || 0}</span>
