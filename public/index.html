@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>SNS Tikutter</title>
 <style>
-  /* === お前のカッコええデザイン（CSSバフ） === */
   body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; display: flex; justify-content: center; }
   .timeline { width: 100%; max-width: 600px; background-color: white; min-height: 100vh; border-left: 1px solid #ccc; border-right: 1px solid #ccc; }
   .header { padding: 15px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #eee; background-color: rgba(255,255,255,0.9); position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
@@ -16,12 +15,16 @@
   .add-image { color: #1d9bf0; text-decoration: none; font-weight: bold; cursor: pointer; font-size: 15px; }
   .post-btn { background-color: #1d9bf0; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
   .post-btn:disabled { background-color: #ccc; cursor: not-allowed; }
-  .tweet { padding: 15px; border-bottom: 1px solid #eee; animation: fadeIn 0.5s; }
+  
+  /* 👇 アイコン周りのカッコええデザイン（新規バフ）や！ */
+  .tweet { padding: 15px; border-bottom: 1px solid #eee; animation: fadeIn 0.5s; display: flex; gap: 10px; }
+  .tweet-icon { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background-color: #ccc; flex-shrink: 0; }
+  .tweet-content { width: 100%; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .user-info { font-weight: bold; margin-bottom: 5px; }
   .user-id { color: #666; font-size: 14px; font-weight: normal; margin-left: 5px;}
   .tweet-text { margin-bottom: 10px; word-break: break-all; white-space: pre-wrap; }
-  .action-btns { display: flex; gap: 20px; color: #536471; font-size: 14px; }
+  .action-btns { display: flex; gap: 20px; font-size: 14px; user-select: none; }
 </style>
 </head>
 <body>
@@ -49,13 +52,11 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-  // 👇 認証用の新しい魔法（Auth）をインポート！
+  import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, getDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
   const firebaseConfig = {
-    // 👇 これが本物の鍵や！この1行をそのまま上書きしたれ！
-apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
+    apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
     authDomain: "tikutter.firebaseapp.com",
     projectId: "tikutter",
     storageBucket: "tikutter.firebasestorage.app",
@@ -66,26 +67,17 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  
-  // 認証の魔法使いを召喚
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
-  let currentUser = null; // 今ログインしてる奴のデータを保持する箱や！
+  let currentUser = null; 
 
-  // --- ログイン＆ログアウトの魔法 ---
   window.login = async function() {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch(e) {
-      console.error("ログイン失敗や！", e);
-    }
+    try { await signInWithPopup(auth, provider); } 
+    catch(e) { console.error("ログイン失敗や！", e); }
   };
 
-  window.logout = async function() {
-    await signOut(auth);
-  };
+  window.logout = async function() { await signOut(auth); };
 
-  // --- ログイン状態を監視する強力なパッシブスキル ---
   onAuthStateChanged(auth, (user) => {
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtn = document.getElementById("logoutBtn");
@@ -94,7 +86,6 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
     const myInput = document.getElementById("myInput");
 
     if (user) {
-      // ログイン成功バフ！
       currentUser = user;
       userNameDisplay.textContent = user.displayName + " 🔥";
       loginBtn.style.display = "none";
@@ -103,7 +94,6 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
       myInput.disabled = false;
       myInput.placeholder = "いまどうしてる？";
     } else {
-      // ログアウト状態（デバフ）
       currentUser = null;
       userNameDisplay.textContent = "未ログイン💀";
       loginBtn.style.display = "inline-block";
@@ -114,14 +104,11 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
     }
   });
 
-  // --- 投稿をFirebaseに送る魔法（ログイン中だけ発動！） ---
   window.sendPost = async function() {
-    if (!currentUser) return; // ログインしてへんかったら弾く！
-
+    if (!currentUser) return;
     const input = document.getElementById("myInput");
     const btn = document.getElementById("postBtn");
     const text = input.value;
-
     if (text.trim() === "") return;
 
     btn.disabled = true;
@@ -129,9 +116,11 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
       await addDoc(collection(db, "posts"), {
         text: text,
         createdAt: serverTimestamp(),
-        userId: currentUser.displayName, // 👈 ここが固定の名前から「Googleのユーザー名」に進化や！
-        likes: 0,
-        retweets: 0
+        userId: currentUser.displayName,
+        // 👇 ここでGoogleのアイコンURL（photoURL）を一緒に金庫へぶち込むんや！
+        userIcon: currentUser.photoURL,
+        likes: [],
+        retweets: []
       });
       input.value = "";
     } catch (e) {
@@ -140,7 +129,36 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
     btn.disabled = false;
   };
 
-  // --- 画面に投稿とボタンを表示する魔法 ---
+  window.likePost = async function(postId) {
+    if (!currentUser) { alert("ログインせんと推せへんぞ！💀"); return; }
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    if (postSnap.exists()) {
+      const post = postSnap.data();
+      const likesArray = Array.isArray(post.likes) ? post.likes : [];
+      if (likesArray.includes(currentUser.uid)) {
+        await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
+      } else {
+        await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
+      }
+    }
+  };
+
+  window.rtPost = async function(postId) {
+    if (!currentUser) { alert("ログインせんと拡散できへんぞ！💀"); return; }
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    if (postSnap.exists()) {
+      const post = postSnap.data();
+      const rtArray = Array.isArray(post.retweets) ? post.retweets : [];
+      if (rtArray.includes(currentUser.uid)) {
+        await updateDoc(postRef, { retweets: arrayRemove(currentUser.uid) });
+      } else {
+        await updateDoc(postRef, { retweets: arrayUnion(currentUser.uid) });
+      }
+    }
+  };
+
   const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
   onSnapshot(q, (snapshot) => {
     const feed = document.getElementById("feed");
@@ -150,16 +168,33 @@ apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
       const post = doc.data();
       const date = post.createdAt ? post.createdAt.toDate().toLocaleString('ja-JP') : "送信中...";
 
+      const likesArray = Array.isArray(post.likes) ? post.likes : [];
+      const likesCount = likesArray.length || (typeof post.likes === 'number' ? post.likes : 0);
+      const isLiked = currentUser ? likesArray.includes(currentUser.uid) : false;
+      const heartColor = isLiked ? "#f91880" : "#536471";
+
+      const rtArray = Array.isArray(post.retweets) ? post.retweets : [];
+      const rtCount = rtArray.length || (typeof post.retweets === 'number' ? post.retweets : 0);
+      const isRt = currentUser ? rtArray.includes(currentUser.uid) : false;
+      const rtColor = isRt ? "#00ba7c" : "#536471";
+
+      // 👇 過去の投稿でアイコンが無い奴用には、灰色のダミー画像を表示する防御バフや！
+      const iconUrl = post.userIcon ? post.userIcon : "https://via.placeholder.com/48/cccccc/ffffff?text=User";
+
       const tweetHtml = `
         <div class="tweet">
-          <div class="user-info">
-            ${post.userId || "名無し"} <span class="user-id">@user</span>
-            <span style="color: #666; font-size: 12px; font-weight: normal; margin-left: 5px;">${date}</span>
-          </div>
-          <div class="tweet-text">${post.text}</div>
-          <div class="action-btns">
-            <span style="cursor:pointer;">🔄 ${post.retweets || 0}</span>
-            <span style="cursor:pointer;">❤️ ${post.likes || 0}</span>
+          <img src="${iconUrl}" class="tweet-icon" alt="アイコン">
+          
+          <div class="tweet-content">
+            <div class="user-info">
+              ${post.userId || "名無し"} <span class="user-id">@user</span>
+              <span style="color: #666; font-size: 12px; font-weight: normal; margin-left: 5px;">${date}</span>
+            </div>
+            <div class="tweet-text">${post.text}</div>
+            <div class="action-btns">
+              <span onclick="rtPost('${doc.id}')" style="cursor:pointer; color: ${rtColor};">🔄 ${rtCount}</span>
+              <span onclick="likePost('${doc.id}')" style="cursor:pointer; color: ${heartColor};">❤️ ${likesCount}</span>
+            </div>
           </div>
         </div>
       `;
