@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>オレの最強SNS Tikutter</title>
+<style>
+  /* === CSS（見た目の装飾・レイアウトバフ） === */
+  body {
+    font-family: sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .timeline {
+    width: 100%;
+    max-width: 600px;
+    background-color: white;
+    min-height: 100vh;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+  }
+  .header {
+    padding: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+    background-color: rgba(255,255,255,0.9);
+    position: sticky;
+    top: 0;
+  }
+  .post-box {
+    padding: 15px;
+    border-bottom: 10px solid #f0f2f5;
+  }
+  .post-input {
+    width: 100%;
+    height: 80px;
+    border: none;
+    resize: none;
+    font-size: 18px;
+    outline: none;
+  }
+  .post-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .image-btn {
+    color: #1d9bf0;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 20px;
+    transition: background-color 0.2s;
+  }
+  .image-btn:hover { background-color: #e8f5fd; }
+  
+  /* 選択した画像の名前を表示するエリアのバフ */
+  #fileNameDisplay {
+    font-size: 12px;
+    color: #666;
+    margin-left: 10px;
+  }
+
+  .post-btn {
+    background-color: #1d9bf0;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .post-btn:hover { background-color: #1a8cd8; }
+  
+  .tweet {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  .user-info { font-weight: bold; margin-bottom: 5px; }
+  .user-id { color: #666; font-size: 14px; font-weight: normal; }
+  
+  /* 投稿された画像のスタイル（はみ出さないように制限バフ） */
+  .tweet-image {
+    max-width: 100%;
+    border-radius: 15px;
+    margin-top: 10px;
+    border: 1px solid #eee;
+  }
+
+  .actions {
+    display: flex;
+    margin-top: 10px;
+    gap: 30px;
+    color: #666;
+  }
+  .action-btn {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+  }
+  .liked { color: #f91880; font-weight: bold; }
+  .retweeted { color: #00ba7c; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="timeline">
+  <div class="header">ホーム</div>
+  
+  <div class="post-box">
+    <textarea id="myInput" class="post-input" placeholder="いまどうしてる？"></textarea>
+    
+    <div class="post-actions">
+      <div style="display: flex; align-items: center;">
+        <label class="image-btn">
+          📷 画像を追加
+          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="showFileName()">
+        </label>
+        <span id="fileNameDisplay"></span>
+      </div>
+      
+      <button class="post-btn" onclick="sendPost()">投稿する</button>
+    </div>
+  </div>
+
+  <div id="feed">
+    <div class="tweet">
+      <div class="user-info">ITマスター <span class="user-id">@it_aniki</span></div>
+      <div class="tweet-text">ついに自作SNSで画像の投稿が成功したぞ！🔥 ガチでフルスタックエンジニアへの道が開けてきたやんけ！</div>
+      <div class="actions">
+        <div class="action-btn" onclick="toggleRetweet(this)">🔄 <span class="count">0</span></div>
+        <div class="action-btn" onclick="toggleLike(this)">❤️ <span class="count">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 選択したファイルの名前をこっそり表示するスキル
+  function showFileName() {
+    const fileInput = document.getElementById("imageInput");
+    const display = document.getElementById("fileNameDisplay");
+    if (fileInput.files.length > 0) {
+      display.innerText = "📎 " + fileInput.files[0].name; // ファイル名をセット
+    } else {
+      display.innerText = "";
+    }
+  }
+
+  function sendPost() {
+    const input = document.getElementById("myInput");
+    const text = input.value;
+    const fileInput = document.getElementById("imageInput");
+    const file = fileInput.files[0]; // 選ばれたファイル本体をゲット
+    
+    // 文章も画像もない場合は何もしない（不発デバフ）
+    if (text.trim() === "" && !file) return;
+
+    if (file) {
+      // FileReaderという強力な組み込みAPI（魔法）を使って画像を読み込む！
+      const reader = new FileReader();
+      
+      // 読み込みが終わったら（onload）発動するコンボスキル
+      reader.onload = function(event) {
+        const imageUrl = event.target.result; // 画像のデータURL（暗号みたいな長い文字列）を取得
+        createTweetHTML(text, imageUrl);
+      };
+      
+      // 画像をデータURLとして読み込み開始！
+      reader.readAsDataURL(file);
+    } else {
+      // 画像がない場合はテキストだけで投稿
+      createTweetHTML(text, null);
+    }
+    
+    // 入力欄とファイル選択状態をリセット（初期化バフ）
+    input.value = "";
+    fileInput.value = "";
+    document.getElementById("fileNameDisplay").innerText = "";
+  }
+
+  // タイムラインにHTMLをねじ込む専用スキル（分業化してコードを綺麗にしたで！）
+  function createTweetHTML(text, imageUrl) {
+    let imageTag = "";
+    if (imageUrl) {
+      // 画像がある場合だけ <img> タグを錬成
+      imageTag = `<img src="${imageUrl}" class="tweet-image">`;
+    }
+
+    const newTweet = `
+      <div class="tweet">
+        <div class="user-info">俺 <span class="user-id">@ore_no_account</span></div>
+        <div class="tweet-text">${text}</div>
+        ${imageTag}
+        <div class="actions">
+          <div class="action-btn" onclick="toggleRetweet(this)">🔄 <span class="count">0</span></div>
+          <div class="action-btn" onclick="toggleLike(this)">❤️ <span class="count">0</span></div>
+        </div>
+      </div>
+    `;
+    
+    const feed = document.getElementById("feed");
+    feed.insertAdjacentHTML('afterbegin', newTweet);
+  }
+
+  function toggleLike(element) {
+    element.classList.toggle("liked");
+    const countSpan = element.querySelector(".count");
+    let count = parseInt(countSpan.innerText);
+    countSpan.innerText = element.classList.contains("liked") ? count + 1 : count - 1;
+  }
+
+  function toggleRetweet(element) {
+    element.classList.toggle("retweeted");
+    const countSpan = element.querySelector(".count");
+    let count = parseInt(countSpan.innerText);
+    countSpan.innerText = element.classList.contains("retweeted") ? count + 1 : count - 1;
+  }
+</script>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
+    authDomain: "tikutter.firebaseapp.com",
+    projectId: "tikutter",
+    storageBucket: "tikutter.firebasestorage.app",
+    messagingSenderId: "118705198737",
+    appId: "1:118705198737:web:b6e062249920731742d130",
+    measurementId: "G-EHFQVV7C2R"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+</body>
+</html>
