@@ -10,11 +10,15 @@
   .timeline { width: 100%; max-width: 600px; background-color: white; min-height: 100vh; border-left: 1px solid #ccc; border-right: 1px solid #ccc; padding-bottom: 80px; }
   .header { padding: 15px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #eee; background-color: rgba(255,255,255,0.9); position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
   
-  .header-icons { display: flex; align-items: center; gap: 12px; }
+  .header-icons { display: flex; align-items: center; gap: 8px; }
   .icon-wrap { position: relative; cursor: pointer; font-size: 22px; transition: 0.2s; }
   .icon-wrap:hover { opacity: 0.7; }
   .notif-badge { position: absolute; top: -5px; right: -5px; background: #f4212e; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 50%; display: none; }
-  .auth-btn { background: #fff; border: 1px solid #ccc; padding: 5px 10px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 14px; }
+  
+  .auth-btn { background: #fff; border: 1px solid #ccc; padding: 5px 10px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 13px; transition: 0.2s; }
+  .auth-btn:hover { background: #f0f2f5; }
+  .guest-btn { background: #1d9bf0; color: white; border: none; }
+  .guest-btn:hover { background: #1a8cd8; }
   
   .tabs { display: flex; border-bottom: 1px solid #eee; background: white; }
   .tab { flex: 1; text-align: center; padding: 12px 2px; cursor: pointer; color: #536471; font-weight: bold; transition: 0.2s; font-size: 14px; }
@@ -55,21 +59,27 @@
   .fab-btn { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #1d9bf0; color: white; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 100; transition: transform 0.2s; }
   .fab-btn:active { transform: scale(0.9); }
 
-  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; justify-content: center; align-items: flex-start; padding-top: 10vh; }
-  .post-modal { background: white; width: 95%; max-width: 500px; border-radius: 15px; padding: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideDown 0.3s; }
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+  .post-modal { background: white; width: 95%; max-width: 400px; border-radius: 15px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: slideDown 0.3s; }
   @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
   .close-modal-btn { font-size: 24px; cursor: pointer; color: #536471; font-weight: bold; }
   .modal-textarea { width: 100%; height: 100px; border: none; resize: none; font-size: 18px; outline: none; margin-bottom: 10px; background: transparent; }
+
+  /* 👇 【新規】認証モーダル用のデザインバフ！ */
+  .auth-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+  .auth-divider { text-align: center; color: #666; font-size: 12px; margin: 15px 0; position: relative; }
+  .auth-divider::before, .auth-divider::after { content: ""; position: absolute; top: 50%; width: 40%; height: 1px; background: #eee; }
+  .auth-divider::before { left: 0; } .auth-divider::after { right: 0; }
+  .google-login-btn { width: 100%; padding: 12px; background: white; border: 1px solid #ccc; border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s; }
+  .google-login-btn:hover { background: #f0f2f5; }
 
   @media (max-width: 600px) {
     .timeline { border-left: none; border-right: none; }
     .header { font-size: 18px; padding: 10px 15px; }
     .tweet { padding: 12px; gap: 8px; }
     .tweet-icon { width: 40px; height: 40px; }
-    .action-btns { padding-right: 0; }
     .fab-btn { bottom: 15px; right: 15px; width: 55px; height: 55px; font-size: 24px; }
-    .post-modal { padding-top: 5vh; height: 100vh; width: 100%; border-radius: 0; }
   }
 </style>
 </head>
@@ -79,10 +89,14 @@
   <div class="header">
     <span>Tikutter</span>
     <div class="header-icons">
-      <div class="icon-wrap" title="マイページ" onclick="openMyProfile()">👤</div>
-      <div class="icon-wrap" title="ブックマーク" onclick="openBookmarks()">🔖</div>
-      <div class="icon-wrap" title="通知" onclick="openNotifications()">🔔<span id="notifBadge" class="notif-badge">0</span></div>
-      <button id="loginBtn" class="auth-btn" onclick="login()">ログイン</button>
+      <div id="userIconsArea" style="display: none; align-items: center; gap: 8px;">
+        <div class="icon-wrap" title="マイページ" onclick="openMyProfile()">👤</div>
+        <div class="icon-wrap" title="ブックマーク" onclick="openBookmarks()">🔖</div>
+        <div class="icon-wrap" title="通知" onclick="openNotifications()">🔔<span id="notifBadge" class="notif-badge">0</span></div>
+      </div>
+      
+      <button id="guestLoginBtn" class="auth-btn guest-btn" onclick="guestLogin()">ゲスト</button>
+      <button id="loginBtn" class="auth-btn" onclick="openAuthModal()">ログイン</button>
       <button id="logoutBtn" class="auth-btn" onclick="logout()" style="display: none;">ログアウト</button>
     </div>
   </div>
@@ -91,6 +105,10 @@
     <div id="tabRecommend" class="tab active" onclick="switchTab('recommend')">おすすめ</div>
     <div id="tabLatest" class="tab" onclick="switchTab('latest')">最新</div>
     <div id="tabFollowing" class="tab" onclick="switchTab('following')">フォロー中</div>
+  </div>
+
+  <div id="guestMessage" style="text-align: center; padding: 10px; font-size: 12px; color: #666; background: #f8f9fa;">
+    現在は未ログイン（見るだけモード）や！投稿するならログインしてな💀
   </div>
 
   <div id="feed"></div>
@@ -129,34 +147,14 @@
   <div id="repliesFeed"></div>
 </div>
 
-<div id="bookmarksView" class="timeline" style="display: none;">
-  <div class="header">
-    <button class="back-btn" onclick="switchView('timelineView')">←</button>
-    <span style="font-size: 18px;">ブックマーク</span><div style="width: 20px;"></div>
-  </div>
-  <div id="bookmarksFeed"></div>
-</div>
-
-<div id="reactionUsersView" class="timeline" style="display: none;">
-  <div class="header">
-    <button class="back-btn" onclick="switchView('detailView')">←</button>
-    <span id="reactionHeaderTitle" style="font-size: 18px;">反応したユーザー</span><div style="width: 20px;"></div>
-  </div>
-  <div id="reactionUsersList"></div>
-</div>
-
-<div id="notifView" class="timeline" style="display: none;">
-  <div class="header">
-    <button class="back-btn" onclick="switchView('timelineView')">←</button>
-    <span style="font-size: 18px;">通知</span><div style="width: 20px;"></div>
-  </div>
-  <div id="notifFeed"></div>
-</div>
+<div id="bookmarksView" class="timeline" style="display: none;"><div class="header"><button class="back-btn" onclick="switchView('timelineView')">←</button><span style="font-size: 18px;">ブックマーク</span><div style="width: 20px;"></div></div><div id="bookmarksFeed"></div></div>
+<div id="reactionUsersView" class="timeline" style="display: none;"><div class="header"><button class="back-btn" onclick="switchView('detailView')">←</button><span id="reactionHeaderTitle" style="font-size: 18px;">反応したユーザー</span><div style="width: 20px;"></div></div><div id="reactionUsersList"></div></div>
+<div id="notifView" class="timeline" style="display: none;"><div class="header"><button class="back-btn" onclick="switchView('timelineView')">←</button><span style="font-size: 18px;">通知</span><div style="width: 20px;"></div></div><div id="notifFeed"></div></div>
 
 <div class="fab-btn" onclick="openPostModal()">T</div>
 
 <div id="postModalOverlay" class="modal-overlay" style="display:none;" onclick="closePostModal(event)">
-  <div class="post-modal" onclick="event.stopPropagation()">
+  <div class="post-modal" onclick="event.stopPropagation()" style="align-self: flex-start; margin-top: 10vh;">
     <div class="modal-header">
       <span class="close-modal-btn" onclick="closePostModal()">×</span>
       <button id="modalPostBtn" class="post-btn" onclick="sendPostFromModal()" disabled>ポストする</button>
@@ -165,10 +163,35 @@
   </div>
 </div>
 
+<div id="authModalOverlay" class="modal-overlay" style="display:none;" onclick="closeAuthModal(event)">
+  <div class="post-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="close-modal-btn" onclick="closeAuthModal()">×</span>
+      <span style="font-weight:bold; font-size:18px;">ログイン / 新規登録</span>
+      <div style="width:24px;"></div>
+    </div>
+    
+    <input type="email" id="emailInput" class="auth-input" placeholder="メールアドレス">
+    <input type="password" id="pwInput" class="auth-input" placeholder="パスワード (6文字以上)">
+    
+    <div style="display:flex; gap:10px; margin-top:5px;">
+      <button class="post-btn" style="flex:1;" onclick="emailLogin()">ログイン</button>
+      <button class="auth-btn" style="flex:1; border: 1px solid #1d9bf0; color:#1d9bf0;" onclick="emailSignUp()">新規登録</button>
+    </div>
+
+    <div class="auth-divider">または</div>
+
+    <button class="google-login-btn" onclick="googleLogin()">
+      <span style="font-size:18px;">G</span> Googleでログイン
+    </button>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
   import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, getDoc, arrayUnion, arrayRemove, setDoc, where, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+  // 👇 メアド関連の魔法（createUserWithEmailAndPassword, signInWithEmailAndPassword）を追加！
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, signOut, onAuthStateChanged, updateProfile, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
@@ -197,6 +220,7 @@
   let myFollowingList = []; 
   let unreadNotifDocs = []; 
 
+  // --- SPA画面切り替え ---
   window.switchView = function(viewId) {
     const views = ["timelineView", "profileView", "detailView", "reactionUsersView", "notifView", "bookmarksView"];
     views.forEach(id => document.getElementById(id).style.display = "none");
@@ -210,6 +234,7 @@
     openProfile(currentUser.uid, currentUser.displayName, currentUser.photoURL);
   };
 
+  // --- 投稿モーダル ---
   window.openPostModal = function() {
     if (!currentUser) { alert("ログインせんと叫べへんぞ！💀"); return; }
     document.getElementById("postModalOverlay").style.display = "flex";
@@ -222,21 +247,79 @@
     document.getElementById("modalInput").value = "";
   };
   window.checkModalInput = function() {
-    const text = document.getElementById("modalInput").value.trim();
-    document.getElementById("modalPostBtn").disabled = (text === "");
+    document.getElementById("modalPostBtn").disabled = (document.getElementById("modalInput").value.trim() === "");
   };
 
-  window.login = async function() { try { await signInWithPopup(auth, provider); } catch(e) { console.error(e); } };
+  // 🔥 【新規】認証モーダルの開閉魔法
+  window.openAuthModal = function() {
+    document.getElementById('authModalOverlay').style.display = 'flex';
+  };
+  window.closeAuthModal = function(e) {
+    if(e && e.target.id !== 'authModalOverlay') return;
+    document.getElementById('authModalOverlay').style.display = 'none';
+  };
+
+  // 🔥 【新規】メアドで新規登録する魔法！
+  window.emailSignUp = async function() {
+    const email = document.getElementById('emailInput').value;
+    const pw = document.getElementById('pwInput').value;
+    if(!email || pw.length < 6) { alert('メアドと6文字以上のパスワードを入れろや！💀'); return; }
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, pw);
+      // メアド登録直後は名前がないから、デフォルトの名前とアイコンを付与するバフ！
+      await updateProfile(userCred.user, { 
+        displayName: "新規ユーザー", 
+        photoURL: "https://via.placeholder.com/48/1d9bf0/ffffff?text=U" 
+      });
+      closeAuthModal();
+    } catch(e) { console.error(e); alert('登録エラーや！メアドの形式がおかしいか、既に登録されとるかも！💀'); }
+  };
+
+  // 🔥 【新規】メアドでログインする魔法！
+  window.emailLogin = async function() {
+    const email = document.getElementById('emailInput').value;
+    const pw = document.getElementById('pwInput').value;
+    if(!email || !pw) return;
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+      closeAuthModal();
+    } catch(e) { console.error(e); alert('ログインエラーや！メアドかパスワード間違ってへんか？💀'); }
+  };
+
+  // Googleログイン（名前をちょっと変えたぞ）
+  window.googleLogin = async function() { 
+    try { await signInWithPopup(auth, provider); closeAuthModal(); } catch(e) { console.error(e); } 
+  };
+  
+  window.guestLogin = async function() { 
+    try { await signInAnonymously(auth); } catch(e) { console.error(e); alert("Firebaseで匿名認証の設定オンにしとるか！？"); } 
+  };
+  
   window.logout = async function() { await signOut(auth); };
 
   onAuthStateChanged(auth, async (user) => {
-    const loginBtn = document.getElementById("loginBtn"); const logoutBtn = document.getElementById("logoutBtn");
-    const replyBtn = document.getElementById("replyBtn"); const replyInput = document.getElementById("replyInput");
+    const loginBtn = document.getElementById("loginBtn"); 
+    const guestLoginBtn = document.getElementById("guestLoginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const userIconsArea = document.getElementById("userIconsArea");
+    const guestMessage = document.getElementById("guestMessage");
+    const replyBtn = document.getElementById("replyBtn"); 
+    const replyInput = document.getElementById("replyInput");
 
     if (user) {
+      // ゲストや、メアド登録したてで名前がない奴に名前を強制付与するバフ！
+      if (!user.displayName) {
+        const defaultName = user.isAnonymous ? "名無しゲスト" : "新規ユーザー";
+        const defaultIcon = user.isAnonymous ? "https://via.placeholder.com/48/1d9bf0/ffffff?text=G" : "https://via.placeholder.com/48/f4212e/ffffff?text=U";
+        await updateProfile(user, { displayName: defaultName, photoURL: defaultIcon });
+      }
+
       currentUser = user;
-      loginBtn.style.display = "none"; logoutBtn.style.display = "inline-block";
+      loginBtn.style.display = "none"; guestLoginBtn.style.display = "none"; 
+      logoutBtn.style.display = "inline-block"; userIconsArea.style.display = "flex";
+      guestMessage.style.display = "none";
       if(replyBtn) replyBtn.disabled = false; if(replyInput) replyInput.disabled = false;
+      
       await setDoc(doc(db, "users", user.uid), { displayName: user.displayName, photoURL: user.photoURL }, { merge: true });
 
       if(myUnsubscribe) myUnsubscribe();
@@ -256,10 +339,13 @@
       });
     } else {
       currentUser = null;
-      loginBtn.style.display = "inline-block"; logoutBtn.style.display = "none";
+      loginBtn.style.display = "inline-block"; guestLoginBtn.style.display = "inline-block";
+      logoutBtn.style.display = "none"; userIconsArea.style.display = "none";
+      guestMessage.style.display = "block";
       if(replyBtn) replyBtn.disabled = true; if(replyInput) replyInput.disabled = true;
       myFollowingList = []; document.getElementById("notifBadge").style.display = "none";
       if(myUnsubscribe) myUnsubscribe(); if(notifUnsubscribe) notifUnsubscribe();
+      renderMainFeed(); 
     }
   });
 
@@ -302,7 +388,6 @@
 
     const iconUrl = post.userIcon || "https://via.placeholder.com/48/cccccc/ffffff?text=User";
     const deleteBtn = (currentUser && currentUser.uid === post.uid) ? `<span class="delete-btn" onclick="deletePost('${docId}')">※</span>` : ``;
-    
     const safeText = encodeURIComponent(post.text || ""); 
 
     const actionBtns = `
@@ -325,7 +410,6 @@
     `;
   }
 
-  // 🔥 【修正】テキストだけの投稿（画像処理を完全削除）
   window.sendPostFromModal = async function() {
     if (!currentUser) return;
     const text = document.getElementById("modalInput").value; const btn = document.getElementById("modalPostBtn");
@@ -338,17 +422,14 @@
         likes: [], retweets: [], bookmarks: [], replyCount: 0 
       });
       closePostModal(); 
-    } catch (e) { console.error(e); alert("エラーや！F12見てみ！💀"); }
+    } catch (e) { console.error(e); alert("エラーや！💀"); }
     btn.disabled = false; btn.textContent = "ポストする";
   };
 
   window.deletePost = async function(docId) {
     if (!currentUser) return;
     if (confirm("このツイートをガチで消去するんか？💀")) {
-      try { 
-        await deleteDoc(doc(db, "posts", docId)); 
-        if (document.getElementById('detailView').style.display === 'block') switchView('timelineView'); 
-      } catch (e) { console.error(e); }
+      try { await deleteDoc(doc(db, "posts", docId)); if (document.getElementById('detailView').style.display === 'block') switchView('timelineView'); } catch (e) { console.error(e); }
     }
   };
 
@@ -364,15 +445,20 @@
   };
 
   window.likePost = async function(postId) {
-    if (!currentUser) return; const ref = doc(db, "posts", postId); const snap = await getDoc(ref);
+    if (!currentUser) { alert("ログイン（またはゲスト）せんと推せへんぞ！💀"); return; }
+    const ref = doc(db, "posts", postId); const snap = await getDoc(ref);
     if (snap.exists()) { const p = snap.data(); const arr = Array.isArray(p.likes) ? p.likes : []; const isAdd = !arr.includes(currentUser.uid);
       await updateDoc(ref, { likes: isAdd ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) });
       if(isAdd && p.uid !== currentUser.uid) { addDoc(collection(db, "notifications"), { targetUid: p.uid, fromUid: currentUser.uid, fromName: currentUser.displayName, fromIcon: currentUser.photoURL, type: 'like', postId: postId, isRead: false, createdAt: serverTimestamp() }); }
     }
   };
-  window.rtPost = async function(postId) { if (!currentUser) return; const ref = doc(db, "posts", postId); const snap = await getDoc(ref); if (snap.exists()) await updateDoc(ref, { retweets: !snap.data().retweets?.includes(currentUser.uid) ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) }); };
+  window.rtPost = async function(postId) { 
+    if (!currentUser) { alert("ログインせんとアカン！"); return; }
+    const ref = doc(db, "posts", postId); const snap = await getDoc(ref); if (snap.exists()) await updateDoc(ref, { retweets: !snap.data().retweets?.includes(currentUser.uid) ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) }); 
+  };
   window.toggleBookmark = async function(postId) {
-    if (!currentUser) return; const ref = doc(db, "posts", postId); const snap = await getDoc(ref);
+    if (!currentUser) { alert("ログインせんとアカン！"); return; }
+    const ref = doc(db, "posts", postId); const snap = await getDoc(ref);
     if (snap.exists()) { const arr = Array.isArray(snap.data().bookmarks) ? snap.data().bookmarks : [];
       await updateDoc(ref, { bookmarks: !arr.includes(currentUser.uid) ? arrayUnion(currentUser.uid) : arrayRemove(currentUser.uid) });
     }
@@ -381,8 +467,7 @@
   window.openTweetDetail = async function(postId) {
     switchView('detailView'); currentDetailPostId = postId;
     const parentData = allPostsData.find(p => p.id === postId);
-    if(parentData) { document.getElementById("parentPostArea").innerHTML = renderTweetHtml(parentData.id, parentData.data); } 
-    else { document.getElementById("parentPostArea").innerHTML = "<div style='padding:20px;'>ツイートが見つからんぞ💀</div>"; }
+    if(parentData) { document.getElementById("parentPostArea").innerHTML = renderTweetHtml(parentData.id, parentData.data); } else { document.getElementById("parentPostArea").innerHTML = "<div style='padding:20px;'>ツイートが見つからんぞ💀</div>"; }
 
     const repliesFeed = document.getElementById("repliesFeed"); repliesFeed.innerHTML = "";
     const replies = allPostsData.filter(p => p.data.parentId === postId);
@@ -421,11 +506,7 @@
     let displayPosts = allPostsData.filter(p => !p.data.parentId);
 
     if (currentTab === 'recommend') { 
-      displayPosts.sort((a, b) => { 
-        const aL = Array.isArray(a.data.likes) ? a.data.likes.length : 0; 
-        const bL = Array.isArray(b.data.likes) ? b.data.likes.length : 0; 
-        return bL - aL; 
-      }); 
+      displayPosts.sort((a, b) => { const aL = Array.isArray(a.data.likes) ? a.data.likes.length : 0; const bL = Array.isArray(b.data.likes) ? b.data.likes.length : 0; return bL - aL; }); 
     } else if (currentTab === 'following') { 
       displayPosts = displayPosts.filter(p => p.data.uid === currentUser?.uid || myFollowingList.includes(p.data.uid)); 
     }
@@ -461,12 +542,14 @@
   };
 
   window.toggleFollow = async function() {
-    if (!currentUser) return; const tRef = doc(db, "users", currentProfileUid); const mRef = doc(db, "users", currentUser.uid); 
+    if (!currentUser) { alert("ログインせんとアカン！"); return; }
+    const tRef = doc(db, "users", currentProfileUid); const mRef = doc(db, "users", currentUser.uid); 
     const tSnap = await getDoc(tRef); let flw = tSnap.exists() ? tSnap.data().followers || [] : [];
     if (flw.includes(currentUser.uid)) { await setDoc(tRef, { followers: arrayRemove(currentUser.uid) }, { merge: true }); await setDoc(mRef, { following: arrayRemove(currentProfileUid) }, { merge: true }); } 
     else { await setDoc(tRef, { followers: arrayUnion(currentUser.uid) }, { merge: true }); await setDoc(mRef, { following: arrayUnion(currentProfileUid) }, { merge: true }); }
     openProfile(currentProfileUid, document.getElementById("profilePageName").textContent, document.getElementById("profilePageIcon").src);
   };
+  
   window.saveProfile = async function() {
     if (!currentUser) return; const bio = document.getElementById("bioInputField").value; const nName = document.getElementById("nameInputField").value;
     if(!nName.trim()) { alert("名前を空にはできへんぞ！💀"); return; }
