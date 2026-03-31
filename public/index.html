@@ -2,13 +2,18 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>オレの最強SNS Tikutter</title>
-<style>
+<title>Tikutter</title> <style>
   body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; display: flex; justify-content: center; }
   .timeline { width: 100%; max-width: 600px; background-color: white; min-height: 100vh; border-left: 1px solid #ccc; border-right: 1px solid #ccc; }
   .header { padding: 15px; font-size: 20px; font-weight: bold; border-bottom: 1px solid #eee; background-color: rgba(255,255,255,0.9); position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
   .auth-area { font-size: 14px; font-weight: normal; display: flex; align-items: center; gap: 10px; }
   .auth-btn { background: #fff; border: 1px solid #ccc; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+  
+  .tabs { display: flex; border-bottom: 1px solid #eee; background: white; }
+  .tab { flex: 1; text-align: center; padding: 15px; cursor: pointer; color: #536471; font-weight: bold; transition: 0.2s; }
+  .tab:hover { background-color: #f0f2f5; }
+  .tab.active { color: #0f1419; border-bottom: 4px solid #1d9bf0; }
+
   .post-box { padding: 15px; border-bottom: 10px solid #f0f2f5; }
   .post-input { width: 100%; height: 80px; border: none; resize: none; font-size: 18px; outline: none; }
   .post-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
@@ -20,33 +25,550 @@
   .tweet-icon { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background-color: #ccc; flex-shrink: 0; cursor: pointer; transition: 0.2s; }
   .tweet-icon:hover { opacity: 0.8; }
   .tweet-content { width: 100%; }
+  .tweet-text-area { cursor: pointer; } 
+  .tweet-text-area:hover { opacity: 0.8; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  .user-info { font-weight: bold; margin-bottom: 5px; }
+  
+  /* 👇 削除ボタン（※）を右端に置くためのデザインバフ！ */
+  .user-info { font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between; }
   .user-id { color: #666; font-size: 14px; font-weight: normal; margin-left: 5px;}
+  .delete-btn { color: #f4212e; cursor: pointer; padding: 0 5px; }
+  
   .tweet-text { margin-bottom: 10px; word-break: break-all; white-space: pre-wrap; }
-  .action-btns { display: flex; gap: 20px; font-size: 14px; user-select: none; }
+  .action-btns { display: flex; gap: 20px; font-size: 14px; user-select: none; margin-top: 5px; }
+  .action-item { display: flex; align-items: center; gap: 5px; } /* ハートと数字を分けたぞ！ */
+  .action-icon { cursor: pointer; }
+  .action-count { cursor: pointer; font-weight: bold; }
+  .action-count:hover { text-decoration: underline; } /* 数字を押せるように見えるバフ */
 
   .profile-header { text-align: center; padding: 20px; border-bottom: 10px solid #f0f2f5; }
   .profile-icon-large { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.2); margin-bottom: 10px; }
   .bio-display { margin-top: 10px; white-space: pre-wrap; word-break: break-all; }
-  .edit-bio-box { margin-top: 15px; display: none; }
-  .bio-input { width: 90%; height: 60px; padding: 10px; border-radius: 10px; border: 1px solid #ccc; resize: none; margin-bottom: 10px; }
+  .edit-bio-box { margin-top: 15px; display: none; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 10px; }
+  .edit-label { font-size: 12px; font-weight: bold; color: #536471; margin-bottom: 5px; display: block; }
+  .bio-input, .name-input { width: 90%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 10px; font-family: sans-serif; }
+  .bio-input { height: 60px; resize: none; }
   .back-btn { cursor: pointer; font-size: 16px; background: none; border: none; font-weight: bold; color: #1d9bf0; padding: 0;}
   
-  /* 👇 フォロー周りのデザインバフ！ */
   .follow-stats { display: flex; justify-content: center; gap: 20px; font-size: 15px; margin-top: 10px; margin-bottom: 15px; }
-  .follow-stats b { color: #0f1419; }
-  .follow-stats span { color: #536471; }
   .follow-btn { padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; border: 1px solid #ccc; background: white; color: black; display: none; margin: 0 auto; transition: 0.2s; }
   .follow-btn.following { background: #0f1419; color: white; border: none; }
-  .follow-btn.following:hover { background: #f4212e; color: white; content: "解除"; }
+  
+  .reply-box { border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
 </style>
 </head>
 <body>
 
 <div id="timelineView" class="timeline">
   <div class="header">
-    <span>ホーム</span>
+    <span>Tikutter</span>
     <div class="auth-area">
       <span id="userNameDisplay">未ログイン💀</span>
-      <button id="loginBtn" class="auth-btn"
+      <button id="loginBtn" class="auth-btn" onclick="login()">ログイン</button>
+      <button id="logoutBtn" class="auth-btn" onclick="logout()" style="display: none;">ログアウト</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div id="tabAll" class="tab active" onclick="switchTab('all')">すべて</div>
+    <div id="tabFollowing" class="tab" onclick="switchTab('following')">フォロー中</div>
+  </div>
+
+  <div class="post-box">
+    <textarea id="myInput" class="post-input" placeholder="いまどうしてる？" disabled></textarea>
+    <div class="post-actions">
+      <span class="add-image">📷 画像を追加</span>
+      <button id="postBtn" class="post-btn" onclick="sendPost()" disabled>投稿する</button>
+    </div>
+  </div>
+  
+  <div id="feed"></div>
+</div>
+
+<div id="profileView" class="timeline" style="display: none;">
+  <div class="header">
+    <button class="back-btn" onclick="switchView('timelineView')">← 戻る</button>
+    <span id="profileHeaderName">プロフィール</span>
+    <div style="width: 50px;"></div>
+  </div>
+  <div class="profile-header">
+    <img id="profilePageIcon" src="" class="profile-icon-large" alt="アイコン">
+    <h2 id="profilePageName" style="margin: 0;">名前</h2>
+    <div class="follow-stats">
+      <span><b id="followingCount">0</b> フォロー中</span>
+      <span><b id="followerCount">0</b> フォロワー</span>
+    </div>
+    <button id="followBtn" class="follow-btn" onclick="toggleFollow()">フォローする</button>
+    <div id="profilePageBio" class="bio-display">読み込み中...</div>
+    <div id="editBioBox" class="edit-bio-box">
+      <span class="edit-label">名前の変更</span>
+      <input type="text" id="nameInputField" class="name-input" placeholder="新しい名前">
+      <span class="edit-label">自己紹介（BIO）</span>
+      <textarea id="bioInputField" class="bio-input" placeholder="自己紹介を熱く語れ！"></textarea><br>
+      <button class="post-btn" onclick="saveProfile()">プロフを更新する🔥</button>
+    </div>
+  </div>
+  <div id="profileFeed"></div>
+</div>
+
+<div id="detailView" class="timeline" style="display: none;">
+  <div class="header">
+    <button class="back-btn" onclick="switchView('timelineView')">← 戻る</button>
+    <span>ツイート</span>
+    <div style="width: 50px;"></div>
+  </div>
+  <div id="parentPostArea"></div>
+  <div class="post-box reply-box">
+    <textarea id="replyInput" class="post-input" placeholder="返信をポスト..." disabled></textarea>
+    <div class="post-actions">
+      <span></span>
+      <button id="replyBtn" class="post-btn" onclick="sendReply()" disabled>返信する</button>
+    </div>
+  </div>
+  <div id="repliesFeed"></div>
+</div>
+
+<div id="reactionUsersView" class="timeline" style="display: none;">
+  <div class="header">
+    <button class="back-btn" onclick="switchView('detailView')">← 戻る</button>
+    <span id="reactionHeaderTitle">反応したユーザー</span>
+    <div style="width: 50px;"></div>
+  </div>
+  <div id="reactionUsersList"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  // 👇 deleteDoc（削除の魔法）を追加したぞ！
+  import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc, getDoc, arrayUnion, arrayRemove, setDoc, where, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBwmjTxHuhEvwa8LGjSGO37c6i-EvyamC8",
+    authDomain: "tikutter.firebaseapp.com",
+    projectId: "tikutter",
+    storageBucket: "tikutter.firebasestorage.app",
+    messagingSenderId: "118705198737",
+    appId: "1:118705198737:web:47b10639061cc59142d130",
+    measurementId: "G-CGGYZPPYZ8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  
+  let currentUser = null; 
+  let currentProfileUid = null; 
+  let currentDetailPostId = null; 
+  let profileUnsubscribe = null; 
+  let detailUnsubscribe = null; 
+  let myUnsubscribe = null; 
+
+  let currentTab = 'all'; 
+  let allPostsData = []; 
+  let myFollowingList = []; 
+
+  window.switchView = function(viewId) {
+    document.getElementById("timelineView").style.display = "none";
+    document.getElementById("profileView").style.display = "none";
+    document.getElementById("detailView").style.display = "none";
+    document.getElementById("reactionUsersView").style.display = "none";
+    document.getElementById(viewId).style.display = "block";
+
+    if(viewId === 'timelineView') {
+      if (profileUnsubscribe) { profileUnsubscribe(); profileUnsubscribe = null; } 
+      if (detailUnsubscribe) { detailUnsubscribe(); detailUnsubscribe = null; }
+    }
+  };
+
+  window.login = async function() {
+    try { await signInWithPopup(auth, provider); } catch(e) { console.error(e); }
+  };
+  window.logout = async function() { await signOut(auth); };
+
+  onAuthStateChanged(auth, async (user) => {
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const userNameDisplay = document.getElementById("userNameDisplay");
+    const postBtn = document.getElementById("postBtn");
+    const replyBtn = document.getElementById("replyBtn");
+    const myInput = document.getElementById("myInput");
+    const replyInput = document.getElementById("replyInput");
+
+    if (user) {
+      currentUser = user;
+      userNameDisplay.textContent = user.displayName + " 🔥";
+      loginBtn.style.display = "none"; logoutBtn.style.display = "inline-block";
+      postBtn.disabled = false; myInput.disabled = false;
+      replyBtn.disabled = false; replyInput.disabled = false;
+
+      // 🔥 ログインした時に「users」金庫に名前とアイコンを上書き保存！（一覧で顔を出すためのバフ）
+      await setDoc(doc(db, "users", user.uid), {
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      }, { merge: true });
+
+      const myRef = doc(db, "users", currentUser.uid);
+      if(myUnsubscribe) myUnsubscribe();
+      myUnsubscribe = onSnapshot(myRef, (docSnap) => {
+        if(docSnap.exists()) myFollowingList = docSnap.data().following || [];
+        renderMainFeed(); 
+      });
+    } else {
+      currentUser = null;
+      userNameDisplay.textContent = "未ログイン💀";
+      loginBtn.style.display = "inline-block"; logoutBtn.style.display = "none";
+      postBtn.disabled = true; myInput.disabled = true;
+      replyBtn.disabled = true; replyInput.disabled = true;
+      myFollowingList = [];
+      if(myUnsubscribe) myUnsubscribe();
+    }
+  });
+
+  window.sendPost = async function() {
+    if (!currentUser) return;
+    const input = document.getElementById("myInput");
+    const text = input.value;
+    if (text.trim() === "") return;
+
+    document.getElementById("postBtn").disabled = true;
+    try {
+      await addDoc(collection(db, "posts"), {
+        text: text, createdAt: serverTimestamp(),
+        userId: currentUser.displayName, userIcon: currentUser.photoURL,
+        uid: currentUser.uid, likes: [], retweets: [], replyCount: 0
+      });
+      input.value = "";
+    } catch (e) { console.error(e); }
+    document.getElementById("postBtn").disabled = false;
+  };
+
+  // --- 🔥 【改修】ツイート描画（削除ボタン＆数字クリック機能追加！） ---
+  function renderTweetHtml(docId, post, isReply = false) {
+    const date = post.createdAt ? post.createdAt.toDate().toLocaleString('ja-JP') : "送信中...";
+    const likesArray = Array.isArray(post.likes) ? post.likes : [];
+    const isLiked = currentUser ? likesArray.includes(currentUser.uid) : false;
+    const heartColor = isLiked ? "#f91880" : "#536471";
+
+    const rtArray = Array.isArray(post.retweets) ? post.retweets : [];
+    const isRt = currentUser ? rtArray.includes(currentUser.uid) : false;
+    const rtColor = isRt ? "#00ba7c" : "#536471";
+    
+    const replyCount = post.replyCount || 0;
+    const iconUrl = post.userIcon || "https://via.placeholder.com/48/cccccc/ffffff?text=User";
+
+    // 自分の投稿にだけ「※（削除ボタン）」を出す魔法！
+    const isMine = currentUser && currentUser.uid === post.uid;
+    const deleteBtnHtml = isMine ? `<span class="delete-btn" onclick="deletePost('${docId}', ${isReply})" title="ツイートを消去する">※</span>` : ``;
+
+    // アイコンを押したら「いいね」、数字を押したら「一覧を見る」に分離したぞ！
+    const actionBtns = isReply ? 
+      `<div class="action-item">
+         <span class="action-icon" onclick="likeReply('${docId}')" style="color: ${heartColor};">❤️</span>
+         <span class="action-count" onclick="openReactions('${docId}', 'likes', true)" style="color: ${heartColor};">${likesArray.length}</span>
+       </div>` :
+      `<div class="action-item">
+         <span class="action-icon" onclick="openTweetDetail('${docId}')">💬</span>
+         <span class="action-count" onclick="openTweetDetail('${docId}')">${replyCount}</span>
+       </div>
+       <div class="action-item">
+         <span class="action-icon" onclick="rtPost('${docId}')" style="color: ${rtColor};">🔄</span>
+         <span class="action-count" onclick="openReactions('${docId}', 'retweets', false)" style="color: ${rtColor};">${rtArray.length}</span>
+       </div>
+       <div class="action-item">
+         <span class="action-icon" onclick="likePost('${docId}')" style="color: ${heartColor};">❤️</span>
+         <span class="action-count" onclick="openReactions('${docId}', 'likes', false)" style="color: ${heartColor};">${likesArray.length}</span>
+       </div>`;
+
+    return `
+      <div class="tweet">
+        <img src="${iconUrl}" class="tweet-icon" onclick="openProfile('${post.uid}', '${post.userId}', '${iconUrl}')">
+        <div class="tweet-content">
+          <div class="user-info">
+            <div>${post.userId || "名無し"} <span class="user-id">@user</span> <span style="color: #666; font-size: 12px; font-weight: normal; margin-left: 5px;">${date}</span></div>
+            ${deleteBtnHtml}
+          </div>
+          <div class="tweet-text tweet-text-area" onclick="${isReply ? '' : `openTweetDetail('${docId}')`}">${post.text}</div>
+          <div class="action-btns">
+            ${actionBtns}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 🔥 【新規】ツイートを完全に消し去る魔法（DELETE）！
+  window.deletePost = async function(docId, isReply) {
+    if (!currentUser) return;
+    // ガチで消すかどうかの「最終確認バフ」や！
+    if (confirm("このツイートをガチで消去（デリート）するんか？💀\n※元には戻せへんぞ！")) {
+      try {
+        const colName = isReply ? "replies" : "posts";
+        await deleteDoc(doc(db, colName, docId));
+        alert("ツイートを消し飛ばしたで！🔥");
+        
+        // もし詳細画面を開いてる途中で親ツイートを消したら、TLに戻す
+        if (!isReply && document.getElementById('detailView').style.display === 'block') {
+           switchView('timelineView');
+        }
+      } catch (e) {
+        console.error("消去失敗や！", e);
+      }
+    }
+  };
+
+  // 🔥 【新規】誰がいいね/RTしたかの一覧を見る魔法！
+  window.openReactions = async function(docId, type, isReply) {
+    switchView('reactionUsersView');
+    
+    const headerTitle = document.getElementById('reactionHeaderTitle');
+    headerTitle.textContent = type === 'likes' ? '❤️ いいねしたユーザー' : '🔄 リツイートしたユーザー';
+    
+    const listArea = document.getElementById('reactionUsersList');
+    listArea.innerHTML = "<div style='padding: 20px; text-align: center;'>読み込み中...</div>";
+
+    const colName = isReply ? "replies" : "posts";
+    const docSnap = await getDoc(doc(db, colName, docId));
+    if (!docSnap.exists()) return;
+
+    const uids = docSnap.data()[type] || []; // いいねかRTのIDリストを取得
+    if (uids.length === 0) {
+      listArea.innerHTML = "<div style='padding: 20px; text-align: center; color: #536471;'>まだ誰も反応してへんぞ💀</div>";
+      return;
+    }
+
+    // IDリストからユーザー情報を全部引っ張ってくる（Promise.allによる並列処理バフ！）
+    let html = '';
+    const userPromises = uids.map(uid => getDoc(doc(db, "users", uid)));
+    const userSnaps = await Promise.all(userPromises);
+
+    userSnaps.forEach(userSnap => {
+      let name = "名無し";
+      let icon = "https://via.placeholder.com/48/cccccc/ffffff?text=User";
+      let uid = "";
+      if (userSnap.exists()) {
+        name = userSnap.data().displayName || name;
+        icon = userSnap.data().photoURL || icon;
+        uid = userSnap.id;
+      }
+      
+      // 一覧にユーザーの顔と名前を並べる！
+      html += `
+        <div class="tweet" style="align-items: center; cursor: pointer;" onclick="openProfile('${uid}', '${name}', '${icon}')">
+          <img src="${icon}" class="tweet-icon">
+          <div style="font-weight: bold; font-size: 16px;">${name}</div>
+        </div>
+      `;
+    });
+    listArea.innerHTML = html;
+  };
+
+  window.likePost = async function(postId) {
+    if (!currentUser) return;
+    const ref = doc(db, "posts", postId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const arr = Array.isArray(snap.data().likes) ? snap.data().likes : [];
+      await updateDoc(ref, { likes: arr.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+    }
+  };
+  window.rtPost = async function(postId) {
+    if (!currentUser) return;
+    const ref = doc(db, "posts", postId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const arr = Array.isArray(snap.data().retweets) ? snap.data().retweets : [];
+      await updateDoc(ref, { retweets: arr.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+    }
+  };
+  window.likeReply = async function(replyId) { 
+    if (!currentUser) return;
+    const ref = doc(db, "replies", replyId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const arr = Array.isArray(snap.data().likes) ? snap.data().likes : [];
+      await updateDoc(ref, { likes: arr.includes(currentUser.uid) ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+    }
+  };
+
+  window.openTweetDetail = async function(postId) {
+    switchView('detailView');
+    currentDetailPostId = postId;
+    
+    const parentRef = doc(db, "posts", postId);
+    const parentSnap = await getDoc(parentRef);
+    if(parentSnap.exists()) {
+      document.getElementById("parentPostArea").innerHTML = renderTweetHtml(parentSnap.id, parentSnap.data());
+    }
+
+    const repliesFeed = document.getElementById("repliesFeed");
+    repliesFeed.innerHTML = "<div style='text-align:center; padding:20px;'>読み込み中...</div>";
+    
+    if (detailUnsubscribe) detailUnsubscribe();
+    const rq = query(collection(db, "replies"), where("postId", "==", postId), orderBy("createdAt", "asc"));
+    detailUnsubscribe = onSnapshot(rq, (snapshot) => {
+      repliesFeed.innerHTML = "";
+      snapshot.forEach((doc) => {
+        repliesFeed.insertAdjacentHTML('beforeend', renderTweetHtml(doc.id, doc.data(), true)); 
+      });
+    });
+  };
+
+  window.sendReply = async function() {
+    if (!currentUser || !currentDetailPostId) return;
+    const input = document.getElementById("replyInput");
+    const text = input.value;
+    if (text.trim() === "") return;
+
+    document.getElementById("replyBtn").disabled = true;
+    try {
+      await addDoc(collection(db, "replies"), {
+        postId: currentDetailPostId, 
+        text: text, createdAt: serverTimestamp(),
+        userId: currentUser.displayName, userIcon: currentUser.photoURL,
+        uid: currentUser.uid, likes: []
+      });
+      await updateDoc(doc(db, "posts", currentDetailPostId), {
+        replyCount: increment(1)
+      });
+      input.value = "";
+      const parentSnap = await getDoc(doc(db, "posts", currentDetailPostId));
+      if(parentSnap.exists()) {
+        document.getElementById("parentPostArea").innerHTML = renderTweetHtml(parentSnap.id, parentSnap.data());
+      }
+    } catch (e) { console.error(e); }
+    document.getElementById("replyBtn").disabled = false;
+  };
+
+  window.switchTab = function(tabName) {
+    if(tabName === 'following' && !currentUser) { alert("ログインせんと見れへんぞ！💀"); return; }
+    currentTab = tabName;
+    document.getElementById("tabAll").classList.remove("active");
+    document.getElementById("tabFollowing").classList.remove("active");
+    if(tabName === 'all') document.getElementById("tabAll").classList.add("active");
+    else document.getElementById("tabFollowing").classList.add("active");
+    renderMainFeed();
+  };
+
+  function renderMainFeed() {
+    const feed = document.getElementById("feed");
+    if(!feed) return;
+    feed.innerHTML = ""; 
+    allPostsData.forEach((postObj) => {
+      const post = postObj.data;
+      if (currentTab === 'following') {
+        const isMe = post.uid === currentUser.uid;
+        const isFollowing = myFollowingList.includes(post.uid);
+        if (!isMe && !isFollowing) return; 
+      }
+      feed.insertAdjacentHTML('beforeend', renderTweetHtml(postObj.id, post));
+    });
+  }
+
+  window.openProfile = async function(targetUid, name, iconUrl) {
+    if (!targetUid || targetUid === 'undefined') { alert("古すぎて飛べへんぞ💀"); return; }
+    switchView('profileView');
+    currentProfileUid = targetUid;
+    document.getElementById("profilePageIcon").src = iconUrl;
+    document.getElementById("profilePageName").textContent = name;
+
+    const editBox = document.getElementById("editBioBox");
+    const followBtn = document.getElementById("followBtn");
+
+    if (currentUser && currentUser.uid === targetUid) {
+      editBox.style.display = "block"; followBtn.style.display = "none";
+    } else {
+      editBox.style.display = "none"; followBtn.style.display = "block";
+    }
+
+    const userRef = doc(db, "users", targetUid);
+    const userSnap = await getDoc(userRef);
+    let followers = [];
+    let following = [];
+
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      document.getElementById("profilePageBio").textContent = data.bio || "まだBIOが設定されてへんぞ💀";
+      document.getElementById("bioInputField").value = data.bio || "";
+      if(data.displayName) {
+        document.getElementById("profilePageName").textContent = data.displayName;
+        document.getElementById("nameInputField").value = data.displayName;
+      } else {
+        document.getElementById("nameInputField").value = name;
+      }
+      followers = data.followers || [];
+      following = data.following || [];
+    } else {
+      document.getElementById("profilePageBio").textContent = "まだBIOが設定されてへんぞ💀";
+      document.getElementById("nameInputField").value = name;
+    }
+
+    document.getElementById("followerCount").textContent = followers.length;
+    document.getElementById("followingCount").textContent = following.length;
+
+    if (currentUser && followers.includes(currentUser.uid)) {
+      followBtn.textContent = "フォロー中"; followBtn.classList.add("following");
+    } else {
+      followBtn.textContent = "フォローする"; followBtn.classList.remove("following");
+    }
+
+    const profileFeed = document.getElementById("profileFeed");
+    profileFeed.innerHTML = "<div style='text-align:center; padding:20px;'>読み込み中...</div>";
+    
+    if (profileUnsubscribe) profileUnsubscribe();
+    const pq = query(collection(db, "posts"), where("uid", "==", targetUid), orderBy("createdAt", "desc"));
+    profileUnsubscribe = onSnapshot(pq, (snapshot) => {
+      profileFeed.innerHTML = "";
+      snapshot.forEach((doc) => {
+        profileFeed.insertAdjacentHTML('beforeend', renderTweetHtml(doc.id, doc.data()));
+      });
+    });
+  };
+
+  window.toggleFollow = async function() {
+    if (!currentUser) return;
+    const targetRef = doc(db, "users", currentProfileUid); 
+    const meRef = doc(db, "users", currentUser.uid); 
+    const targetSnap = await getDoc(targetRef);
+    let followers = [];
+    if (targetSnap.exists()) followers = targetSnap.data().followers || [];
+
+    if (followers.includes(currentUser.uid)) {
+      await setDoc(targetRef, { followers: arrayRemove(currentUser.uid) }, { merge: true });
+      await setDoc(meRef, { following: arrayRemove(currentProfileUid) }, { merge: true });
+    } else {
+      await setDoc(targetRef, { followers: arrayUnion(currentUser.uid) }, { merge: true });
+      await setDoc(meRef, { following: arrayUnion(currentProfileUid) }, { merge: true });
+    }
+    openProfile(currentProfileUid, document.getElementById("profilePageName").textContent, document.getElementById("profilePageIcon").src);
+  };
+
+  window.saveProfile = async function() {
+    if (!currentUser) return;
+    const bioText = document.getElementById("bioInputField").value;
+    const newName = document.getElementById("nameInputField").value;
+    if(!newName.trim()) { alert("名前を空にはできへんぞ！💀"); return; }
+    try {
+      await updateProfile(currentUser, { displayName: newName });
+      const userRef = doc(db, "users", currentUser.uid);
+      await setDoc(userRef, { bio: bioText, displayName: newName }, { merge: true });
+      document.getElementById("profilePageBio").textContent = bioText;
+      document.getElementById("profilePageName").textContent = newName;
+      document.getElementById("userNameDisplay").textContent = newName + " 🔥"; 
+      alert("プロフと名前をガチで更新したで！🔥");
+    } catch (e) { console.error(e); }
+  };
+
+  const mainQ = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+  onSnapshot(mainQ, (snapshot) => {
+    allPostsData = []; 
+    snapshot.forEach((doc) => {
+      allPostsData.push({ id: doc.id, data: doc.data() }); 
+    });
+    renderMainFeed(); 
+  });
+</script>
+
+</body>
+</html>
